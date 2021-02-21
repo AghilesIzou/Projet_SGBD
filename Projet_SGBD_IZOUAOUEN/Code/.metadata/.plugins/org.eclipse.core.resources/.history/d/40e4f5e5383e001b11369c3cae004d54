@@ -1,0 +1,614 @@
+package up_info_bdda_iz_ha;
+
+import java.io.BufferedReader;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class DBManager {
+	
+	 private DBManager() {}
+    
+    private static class Holder{
+    	public static DBManager dbManager= new DBManager();
+    }
+
+    public static DBManager getInstance() {
+        return Holder.dbManager;
+    }
+    
+    public void Init() {
+    	DBInfo.getINSTANCE().Init();
+    	FileManager.getINSTANCE().Init();
+    }
+    
+    public void Finish() throws IOException  {
+    	
+    	DBInfo.getINSTANCE().Finish();
+    	BufferManager.getInstance().FlushAll();
+    }
+    
+    public void ProcessCommand(String commande) throws IOException, IllegalArgumentException {
+    	
+    	String mot[] = commande.split(" ");
+    	
+    	
+    	switch(mot[0]) {
+    	
+    	case "CREATEREL":
+    		
+    		CreateRelation(mot);
+    		break;
+    		
+    	case "RESET":
+    		
+    		Reset();
+    		break;
+    		
+    	case "INSERT":
+    		
+    		Insert(mot);
+    		break;
+    		
+    	case "BATCHINSERT" :
+    		
+    		BatchInsert(mot[2], mot[5]);
+    		break;
+    	
+    	case "SELECTALL" :	
+    		SelectAll(mot[2]);
+    		break;
+    		
+    	case "SELECTS" :
+    		
+    		SelectS(mot[2], mot[4]);
+    		break;
+    	
+    	case "SELECTC" :
+    		
+    		SelectC(commande);
+    		break;
+    		
+    	case "UPDATE" :
+    		
+    		Update(mot[1], mot[3], mot[5]);
+    		break;
+    	
+    	case "HELP" :
+    		
+    		Utilitaire.menuHelp();
+    		break;
+    	
+    	default :
+    		
+    		throw new IllegalArgumentException("********** Erreur ! la commande "+mot[0]+ " n'existe pas ! **********");
+    	}
+    	
+    }
+    
+    public void CreateRelation(String [] mot) throws IOException {
+    	
+    	List<ColInfo> listeNomTypeColonne = new ArrayList<ColInfo> ();
+		for(int i =2; i< mot.length;i++) {
+			String [] nomType = mot[i].split(":");
+			ColInfo infoColonne = new ColInfo(nomType[0],nomType[1]);
+			listeNomTypeColonne.add(infoColonne);
+		}
+		
+		String nomRelation = mot[1];
+		int nombreColonnes = mot.length-2;
+		
+    	int recordSize=0;
+    	
+    	String typeString;
+    	
+    	for (ColInfo colInfo : listeNomTypeColonne) {
+    		
+    		
+			switch(colInfo.getTypeDeLaColonne().toLowerCase()) {
+			
+    		
+    			case "int" : case "float" : recordSize+=4;
+    			break;
+    			
+    			default : 
+    				
+    				typeString = colInfo.getTypeDeLaColonne().toLowerCase();
+    				recordSize += 2* Integer.parseInt(typeString.substring(6));
+			}
+		}
+    	
+    	int slotCount = (DBParams.pageSize/(recordSize+1));
+    	int fileIdx = DBInfo.getINSTANCE().getCompteur();
+    	
+    	RelationInfo relationInfo = new RelationInfo(nomRelation, nombreColonnes, listeNomTypeColonne, fileIdx, recordSize, slotCount );
+    	DBInfo.getINSTANCE().AddRelation(relationInfo);
+    	FileManager.getINSTANCE().CreateRelationFile(relationInfo);
+    	
+    	System.out.println("\n--------------------------------------------------------------------------------------------------------------------------------------");
+    	System.out.println("\nVous avez créé la relation "+ nomRelation+" avec succés ! ");
+    	System.out.println("Nombres de colonnes : "+nombreColonnes);
+    	for(int i=0; i<listeNomTypeColonne.size();i++) {
+    		System.out.println("Nom de la colonne "+(i+1)+" : "+listeNomTypeColonne.get(i).getNomDeLaColonne()+", de type : "+listeNomTypeColonne.get(i).getTypeDeLaColonne()+".");
+    	}
+    	System.out.println("\n--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	
+    }
+    
+    public void Reset() throws IOException {
+    	
+    	BufferManager.getInstance().reset();
+    	DBInfo.getINSTANCE().reset();
+    	FileManager.getINSTANCE().reset();
+    	
+    	File directory = new File(DBParams.dbPath);
+    	
+    	 if (directory.exists()) {
+    		 
+             if (directory.isDirectory()) {
+                 
+                 File[] fichiers = directory.listFiles();
+                 
+                 for (File file : fichiers) {
+                     file.delete();
+                 }
+                 
+             }
+             
+    	 }
+
+    	 System.out.println("\n--------------------------------------------------------------------------------------------------------------------------------------");
+    	 System.out.println("\t\t\t\t********* La base de données a été supprimée avec succès ! *********");
+    	 System.out.println("--------------------------------------------------------------------------------------------------------------------------------------\n");
+    	
+    }
+    
+    public void  Insert(String[] mot) throws IOException {
+    	
+    	String nomRelation = mot[2];
+		List<String> values = new ArrayList<>();
+		String valueswithoutParentheses = mot[4].substring(1, mot[4].length()-1);
+		
+		String tabValues [] = valueswithoutParentheses.split(",");
+		for (String value : tabValues) {
+			values.add(value);
+		}
+    	
+    	Record record = new Record();
+    	record.setListeValues(values);
+    	FileManager.getINSTANCE().InsertRecordInRelation(record, nomRelation);
+    	
+    	
+     }
+    
+    public void BatchInsert(String nomRelation, String nomFichier) throws IOException {
+    	
+    	FileReader fileReader = new FileReader(DBParams.dbPath + "/../" +nomFichier);
+		BufferedReader bufferdReader = new BufferedReader(fileReader);
+		String ligne=null;
+		
+		while((ligne = bufferdReader.readLine()) != null){
+			List<String> values = new ArrayList<String>();
+			Record record = new Record();
+			String[] valuesRecord = ligne.split(",");
+			for (String value : valuesRecord) {
+				values.add(value);
+			}
+			record.setListeValues(values);
+			FileManager.getINSTANCE().InsertRecordInRelation(record, nomRelation);
+		}
+
+		bufferdReader.close();
+    	
+    }
+    
+    public void SelectAll(String nomRelation) throws IOException {
+    	
+    	ArrayList<Record> allRecords = FileManager.getINSTANCE().SelectAllFromRelation(nomRelation);
+    	int compteurRecords=0;
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	for (int i = 0; i < allRecords.size() ; i++) {
+    		
+    		ArrayList<String> valuesRecord= (ArrayList<String>) allRecords.get(i).getValues();
+    		StringBuilder builder = new StringBuilder();
+    		
+    		for (int j = 0 ; j<valuesRecord.size(); j++) {
+				builder.append(valuesRecord.get(j));
+				if(j!=valuesRecord.size()-1) {
+					builder.append(" ; ");
+				}else {
+					builder.append(".");
+				}
+				
+			}
+    		compteurRecords++;
+    		System.out.println(builder.toString()+"\n");
+    		
+			
+		}
+    	System.out.println("Total records="+compteurRecords+".");
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    }
+    
+    public void SelectS(String nomRelation, String nomValeurColonne) throws IOException {
+    	
+    	String[] separer = nomValeurColonne.split("=");
+    	String nomColonne= separer[0];
+    	String valeurColonne = separer[1];
+    	ArrayList<Record> allRecords = FileManager.getINSTANCE().SelectAllFromRelation(nomRelation);
+    	
+    	int positionDansRelation=0;
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	for (int i = 0; i <allRecords.get(0).getRelInfo().getNbColonnes() ; i++) {
+			
+    		if(allRecords.get(0).getRelInfo().getListeNomTypeColonnes().get(i).getNomDeLaColonne().equals(nomColonne)) {
+    			positionDansRelation=i;
+			}
+		}
+    	
+    	int compteurRecords=0;
+    	
+    	for (int i = 0; i < allRecords.size() ; i++) {
+    		
+    		ArrayList<String> valuesRecord= (ArrayList<String>) allRecords.get(i).getValues();
+    		if(valuesRecord.get(positionDansRelation).equals(valeurColonne)) {
+    			
+    			StringBuilder builder = new StringBuilder();
+        		
+        		for (int j = 0 ; j<valuesRecord.size(); j++) {
+    				builder.append(valuesRecord.get(j));
+    				if(j!=valuesRecord.size()-1) {
+    					builder.append(" ; ");
+    				}else {
+    					builder.append(".");
+    				}
+    				
+    			}
+        		compteurRecords++;
+        		System.out.println(builder.toString()+"\n");
+        		
+    			
+    			
+    		}
+    		
+			
+		}
+    	System.out.println("Total records="+compteurRecords+".");
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    }
+    
+    public void SelectC(String commande) throws IOException {
+    	
+    	
+    	String [] mot = commande.split(" ");
+		String nomRelation = mot[2];
+		ArrayList<Record> allRecords = FileManager.getINSTANCE().SelectAllFromRelation(nomRelation);
+		ArrayList<ColInfo> types = (ArrayList<ColInfo>) allRecords.get(0).getRelInfo().getListeNomTypeColonnes();
+		ArrayList<Boolean> conditionsSatisfaites = new ArrayList<>();
+		ArrayList<Record> recordsCheckCondition = new ArrayList<>();
+		
+    	String partieCriteres = commande.substring(21);
+		String [] criteres = partieCriteres.split(" AND ");
+		String operateur = null;
+		String typeColonne = null;
+		int positionValue = 0;
+		int compteurRecords=0;
+		
+    	for(int i =0;i<allRecords.size();i++) {
+    		
+    		Record record = allRecords.get(i);
+    		ArrayList<String> valuesRecords = (ArrayList<String>) record.getValues();
+    		
+    		for(int j=0; j<criteres.length; j++) {
+    			
+    			StringBuilder sb = new StringBuilder();
+        		Pattern pattern = Pattern.compile("\\W");   
+        	    Matcher matcher = pattern.matcher(criteres[j]) ;  
+        		 while (matcher.find()) {  
+        			 sb.append(matcher.group());
+        			 operateur = sb.toString();
+        		}
+    			
+    			String[] colonneValeur = criteres[j].split(operateur);
+    			String nomColonne = colonneValeur[0];
+    			String valeur = colonneValeur[1];
+    			
+    			for ( int k=0; k<types.size();k++) {
+    				
+    				
+    				if(types.get(k).getNomDeLaColonne().equals(nomColonne)) {
+    					typeColonne = types.get(k).getTypeDeLaColonne();
+    					positionValue=k;
+    					break;
+    				}
+    				
+    			}
+    			
+    			if(typeColonne.equals("int")) {
+    				
+    				switch(operateur) {
+    					
+    					case ">" :
+    						if(Integer.parseInt(valuesRecords.get(positionValue))>Integer.parseInt(valeur)) {
+    							conditionsSatisfaites.add(true);
+    						}else {
+    							conditionsSatisfaites.add(false);
+    						}
+    						break;
+    				
+    					case "<" :
+    						
+    						if(Integer.parseInt(valuesRecords.get(positionValue))<Integer.parseInt(valeur)) {
+    							conditionsSatisfaites.add(true);
+    						}else {
+    							conditionsSatisfaites.add(false);
+    						}
+    						break;
+    						
+    					case ">=" :
+    						
+    						if(Integer.parseInt(valuesRecords.get(positionValue))>=Integer.parseInt(valeur)) {
+    							conditionsSatisfaites.add(true);
+    						}else {
+    							conditionsSatisfaites.add(false);
+    						}
+    						break;	
+    						
+    					case "<=" :
+    						
+    						if(Integer.parseInt(valuesRecords.get(positionValue))<=Integer.parseInt(valeur)) {
+    							conditionsSatisfaites.add(true);
+    						}else {
+    							conditionsSatisfaites.add(false);
+    						}
+    						break;	
+    						
+    					case "=" :
+    						
+    						if(Integer.parseInt(valuesRecords.get(positionValue))==Integer.parseInt(valeur)) {
+    							conditionsSatisfaites.add(true);
+    						}else {
+    							conditionsSatisfaites.add(false);
+    						}
+    						break;	
+    				
+    				}
+    			
+    			
+    				
+    			}else if(typeColonne.equals("float")) {
+    				
+    				
+    				
+    				switch(operateur) {
+					
+					case ">" :
+						if(Float.parseFloat(valuesRecords.get(positionValue))>Float.parseFloat(valeur)) {
+							conditionsSatisfaites.add(true);
+						}else {
+							conditionsSatisfaites.add(false);
+						}
+						break;
+				
+					case "<" :
+						
+						if(Float.parseFloat(valuesRecords.get(positionValue))<Float.parseFloat(valeur)) {
+							conditionsSatisfaites.add(true);
+						}else {
+							conditionsSatisfaites.add(false);
+						}
+						break;
+						
+					case ">=" :
+						
+						if(Float.parseFloat(valuesRecords.get(positionValue))>=Float.parseFloat(valeur)) {
+							conditionsSatisfaites.add(true);
+						}else {
+							conditionsSatisfaites.add(false);
+						}
+						break;
+						
+					case "<=" :
+						
+						if(Float.parseFloat(valuesRecords.get(positionValue))<=Float.parseFloat(valeur)) {
+							conditionsSatisfaites.add(true);
+						}else {
+							conditionsSatisfaites.add(false);
+						}
+						break;
+						
+					case "=" :
+						
+						if(Float.parseFloat(valuesRecords.get(positionValue))==Float.parseFloat(valeur)) {
+							conditionsSatisfaites.add(true);
+						}else {
+							conditionsSatisfaites.add(false);
+						}
+						break;
+				
+				}
+    				
+    				
+    			}else {
+    				
+    				if(valuesRecords.get(positionValue).equals(valeur)){
+    					conditionsSatisfaites.add(true);
+    				}else {
+						conditionsSatisfaites.add(false);
+					}
+    				
+    			}
+    			
+    		}
+    		
+    		if(!(conditionsSatisfaites.contains(false))) {
+    			recordsCheckCondition.add(record);
+    		}
+    		
+    		
+    		conditionsSatisfaites.clear();
+    		
+    	}
+    	
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    
+    	for (int i = 0; i < recordsCheckCondition.size() ; i++) {
+    		
+    		ArrayList<String> valuesRecord= (ArrayList<String>) recordsCheckCondition.get(i).getValues();
+    		
+    			StringBuilder builder = new StringBuilder();
+        		
+        		for (int j = 0 ; j<valuesRecord.size(); j++) {
+    				builder.append(valuesRecord.get(j));
+    				if(j!=valuesRecord.size()-1) {
+    					builder.append(" ; ");
+    				}else {
+    					builder.append(".");
+    				}
+    				
+    			}
+        		compteurRecords++;
+        		System.out.println(builder.toString()+"\n");
+        		
+    	}
+    	System.out.println("Total records="+compteurRecords+".");
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	
+    }
+
+  /*  public void  Update(String nomRelation, String colonneA, String colonneB) throws IOException {
+    	
+    	String[] separerA = colonneA.split("=");
+    	String nomColonneA= separerA[0];
+    	String valeurColonneA = separerA[1];
+    	int positionDeADansRelation=0;
+    	
+    	
+    	String[] separerB = colonneB.split("=");
+    	String nomColonneB= separerB[0];
+    	String valeurColonneB = separerB[1];
+    	int positionDeBDansRelation=0;
+    	
+    	ArrayList<Record> allRecords = FileManager.getINSTANCE().SelectAllFromRelation(nomRelation);
+    	
+    	System.out.println("\n--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	for (int i = 0; i <allRecords.get(0).getRelInfo().getNbColonnes() ; i++) {
+			
+    		if(allRecords.get(0).getRelInfo().getListeNomTypeColonnes().get(i).getNomDeLaColonne().equals(nomColonneB)) {
+    			positionDeBDansRelation=i;
+			}
+    		
+    		if(allRecords.get(0).getRelInfo().getListeNomTypeColonnes().get(i).getNomDeLaColonne().equals(nomColonneA)) {
+    			positionDeADansRelation=i;
+			}
+		}
+    	
+    	int updatedRecords=0;
+    	
+    	for (int i = 0; i < allRecords.size() ; i++) {
+    		
+    	//	Record record = allRecords.get(i);
+    	//	record.getValues().get(positionDeBDansRelation).equals(valeurColonneB)
+    	//record.setValues(positionDeADansRelation, valeurColonneA);	
+    		if(allRecords.get(i).getValues().get(positionDeBDansRelation).equals(valeurColonneB)) {
+    			allRecords.get(i).setValues(positionDeADansRelation, valeurColonneA);
+    			updatedRecords++;
+    		}
+        		
+        		
+    	}
+    		
+    	System.out.println("Total updated records="+updatedRecords);
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	
+    	}*/
+    
+    
+public void  Update(String nomRelation, String colonneA, String colonneB) throws IOException {
+	
+		
+    	String[] separerA = colonneA.split("=");
+    	String nomColonneA= separerA[0];
+    	String valeurColonneA = separerA[1];
+    	int positionDeADansRelation=0;
+    	
+    	
+    	String[] separerB = colonneB.split("=");
+    	String nomColonneB= separerB[0];
+    	String valeurColonneB = separerB[1];
+    	int positionDeBDansRelation=0;
+    	
+    	int updatedRecords=0;
+    	
+    	
+    	
+    	for (int i = 0; i <FileManager.getINSTANCE().getRel(nomRelation).getNbColonnes() ; i++) {
+			
+    		if(FileManager.getINSTANCE().getRel(nomRelation).getListeNomTypeColonnes().get(i).getNomDeLaColonne().equals(nomColonneB)) {
+    			positionDeBDansRelation=i;
+			}
+    		
+    		if(FileManager.getINSTANCE().getRel(nomRelation).getListeNomTypeColonnes().get(i).getNomDeLaColonne().equals(nomColonneA)) {
+    			positionDeADansRelation=i;
+			}
+		}
+    	
+    	int fileIdx = FileManager.getINSTANCE().getRel(nomRelation).getFileIdx();
+    	
+    	PageId pageIdHeaderPage = new PageId(fileIdx,0);
+    	ByteBuffer headerPage = BufferManager.getInstance().GetPage(pageIdHeaderPage);
+    	headerPage.position(0);
+    	
+    	int nbDataPage = headerPage.getInt();
+    	
+    	BufferManager.getInstance().FreePage(pageIdHeaderPage, 0);
+    	
+    	
+    	for(int i=1; i<=nbDataPage; i++) {
+			
+			PageId dataPage = new PageId(fileIdx,i);
+			ByteBuffer bufferDataPage = BufferManager.getInstance().GetPage(dataPage);
+			ArrayList<Record> recordsDataPage = FileManager.getINSTANCE().getHeapFiles().get(fileIdx).getRecordsInDataPage(dataPage);
+			
+			for (int j=0; j <recordsDataPage.size();i++) {
+				
+				if(recordsDataPage.get(j).getValues().get(positionDeBDansRelation).equals(valeurColonneB)) {
+		    			
+					recordsDataPage.get(j).setValues(positionDeADansRelation, valeurColonneA);
+					//bufferDataPage.position(FileManager.getINSTANCE().getRel(nomRelation).getSlotCount());
+					//record.readFromBuffer(buffer, reldef.getSlotCount() + i * reldef.getRecordSize());
+					//recordsDataPage.get(j).writeToBuffer(bufferDataPage, FileManager.getINSTANCE().getRel(nomRelation).getSlotCount() * 4 + j * FileManager.getINSTANCE().getRel(nomRelation).getRecordSize());
+		    		updatedRecords++;
+		    	}
+				
+			}
+			
+			//BufferManager.getInstance().FreePage(dataPage, 1);
+		}
+    	    	
+    	
+    	System.out.println("\n--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	
+    		
+    	System.out.println("Total updated records="+updatedRecords);
+    	System.out.println("--------------------------------------------------------------------------------------------------------------------------------------");
+    	
+    	
+    	}
+
+
+}

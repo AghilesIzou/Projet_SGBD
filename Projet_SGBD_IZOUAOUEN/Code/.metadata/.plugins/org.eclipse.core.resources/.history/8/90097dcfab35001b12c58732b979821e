@@ -1,0 +1,52 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TestFileManager {
+
+	public static void main(String[] args) throws IOException {
+		String commande = "INSERT INTO Profs RECORD (Ileana,BDDA,12,18,Riri)";
+		String mot[] = commande.split(" ");
+		
+		String nomRelation = mot[2];
+		List<String> values = new ArrayList<>();
+		String valueswithoutParentheses = mot[4].substring(1, mot[4].length()-1);
+		
+		String tabValues [] = valueswithoutParentheses.split(",");
+		for (String value : tabValues) {
+			values.add(value);
+		}
+		
+		
+		for (String string : values) {
+			System.out.print(string+"\t");
+		}
+		
+		
+			String nomRelation = commande[1];
+			String csv = commande[1];
+			File fichierCsv = new File(DBParams.dbPath + "/../" + commande[2]);
+
+			List<String> lignes = new ArrayList<String>();
+			FileReader fr = new FileReader(fichierCsv);
+			BufferedReader buffer = new BufferedReader(fr);
+
+			String ligne;
+
+			while ((ligne = buffer.readLine()) != null) {
+				Record record = new Record();
+				String[] tmp = ligne.split(",");
+				for (String j : tmp) {
+					record.setValues(j);
+				}
+
+			}
+
+			
+		
+		
+	}
+
+}

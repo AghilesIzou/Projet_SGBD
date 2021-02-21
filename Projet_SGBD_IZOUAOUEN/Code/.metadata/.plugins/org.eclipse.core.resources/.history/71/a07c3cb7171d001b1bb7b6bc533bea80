@@ -1,0 +1,19 @@
+package up_info_bdda_iz_ha;
+
+public class BufferManager {
+	
+	private static BufferManager bufferManager;
+	
+	private BufferManager(){}
+	
+	public static BufferManager getInstance() {
+		
+		if(bufferManager ==null) {
+			
+			bufferManager = new BufferManager();
+		}
+		
+		return bufferManager;
+	}
+
+}

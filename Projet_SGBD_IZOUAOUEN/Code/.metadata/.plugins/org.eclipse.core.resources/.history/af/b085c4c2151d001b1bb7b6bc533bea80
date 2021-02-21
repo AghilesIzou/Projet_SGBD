@@ -1,0 +1,42 @@
+package up_info_bdda_iz_ha;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DBInfo {
+	
+	private static DBInfo DBInfo;
+	private static int compteur=0;
+	List <RelationInfo> listeDeRelationsInfo = new ArrayList<RelationInfo>();
+	
+	private DBInfo() {}
+
+	public static DBInfo getINSTANCE() {
+		if(DBInfo == null) {
+			DBInfo = new DBInfo();
+        }
+
+        return DBInfo;
+	}
+	public void Init() {
+		
+	}
+	
+	public void Finish() {
+		
+	}
+	
+	public void AddRelation(RelationInfo relation) {
+		listeDeRelationsInfo.add(relation);
+		compteur++;
+	}
+
+	public static int getCompteur() {
+		return compteur;
+	}
+
+	public static void setCompteur(int compteur) {
+		DBInfo.compteur = compteur;
+	}
+
+}

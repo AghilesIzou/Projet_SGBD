@@ -1,0 +1,203 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+
+/*
+ * Class HeapFile qui gère la Couche accès / fichiers
+ * 
+ * 
+ * 
+ * @author Aghiles_IZOUAOUEN  Yanis_HAMMOUDI
+ * 
+ * @version 1.0 
+ * 
+ *
+ */
+
+public class HeapFile {
+	
+	private RelationInfo relInfo;
+	
+	public HeapFile(RelationInfo relInfo) {
+		
+		this.relInfo =relInfo;
+	}
+	
+	public RelationInfo getRelInfo() {
+		return relInfo;
+	}
+	
+	/*
+	*  methode qui sert à la création du fichier disque correspondant au Heap File
+	* @throws IOException
+	*/
+	
+	public void createNewOnDisk() throws IOException {
+		
+		DiskManager.getInstance().CreateFile(relInfo.getFileIdx());
+		PageId headerPage = DiskManager.getInstance().AddPage(relInfo.getFileIdx());
+		
+		ByteBuffer bufferHeaderPage = BufferManager.getInstance().GetPage(headerPage);
+		bufferHeaderPage.position(0);
+		for(int i=0; i<DBParams.pageSize;i++) {
+			
+			bufferHeaderPage.put((byte)0);
+		}
+		
+		 BufferManager.getInstance().FreePage(headerPage, 1);
+	}
+	
+	/*
+	 * methode pour rajouter une page de données et retourner le PageId de cette page
+	 * @return PageId un pageId
+	* @throws IOException
+	 */
+	
+	public PageId addDataPage() throws IOException {
+		
+		PageId dataPage = DiskManager.getInstance().AddPage(relInfo.getFileIdx());
+		
+		int nbDataPage = dataPage.getPageIdx(); 
+		PageId headerPage = new PageId(dataPage.getFileIdx(),0);
+		
+		ByteBuffer buffheaderPage = BufferManager.getInstance().GetPage(headerPage);
+		buffheaderPage.position(0);
+		buffheaderPage.putInt(nbDataPage);
+		buffheaderPage.position(nbDataPage*4); 
+		buffheaderPage.putInt(relInfo.getSlotCount());
+		BufferManager.getInstance().FreePage(headerPage, 1);
+		
+		return dataPage;
+	}
+	
+	
+	/*
+	 * methode qui sert à retourner le PageId d’une page de données sur laquelle il reste des cases libres
+	 * @return PageId un pageId
+     * @throws IOException
+	 */
+	
+	public PageId getFreeDataPageId() throws IOException {
+		
+		PageId headerPage = new PageId(relInfo.getFileIdx(),0);
+		
+		ByteBuffer buffHeaderPage = BufferManager.getInstance().GetPage(headerPage); 
+		
+		buffHeaderPage.position(0);
+		
+		int nbDataPage = buffHeaderPage.getInt();
+		
+		for(int i =0; i<nbDataPage;i++) {
+			
+			if(buffHeaderPage.getInt() > 0) {
+				
+				BufferManager.getInstance().FreePage(headerPage, 0);
+				return new PageId(relInfo.getFileIdx(),i+1);
+			}
+		}
+		
+		BufferManager.getInstance().FreePage(headerPage, 0);
+		return null;
+	}
+	
+	public Rid writeRecordToDataPage(Record record, PageId pageId) throws IOException {
+		
+		ByteBuffer dataPage = BufferManager.getInstance().GetPage(pageId);
+		PageId headerPage = new PageId(pageId.getFileIdx(),0);
+		ByteBuffer bufferHeaderPage = BufferManager.getInstance().GetPage(headerPage);
+		
+		int nbslotsPage = relInfo.getSlotCount();
+		boolean estTrouve = false;
+		
+		dataPage.position(0);
+		
+		while (nbslotsPage >= 1 && (estTrouve == false)) {
+			nbslotsPage--;
+			
+			if (dataPage.get() == 0) {
+				estTrouve = true;
+			}
+			
+		}
+		int positionInBytemap = dataPage.position() - 1; 
+		dataPage.put(positionInBytemap, (byte) 1);
+		
+		record.writeToBuffer(dataPage, relInfo.getSlotCount() + positionInBytemap * relInfo.getRecordSize());
+		
+		BufferManager.getInstance().FreePage(pageId,1);
+		bufferHeaderPage.position(pageId.getPageIdx() * 4);
+		int nombreDeSlotsRestants = bufferHeaderPage.getInt();
+		bufferHeaderPage.position(pageId.getPageIdx() * 4);
+		bufferHeaderPage.putInt(nombreDeSlotsRestants - 1);
+		BufferManager.getInstance().FreePage(headerPage, 1);
+		
+		
+		
+		return new Rid(pageId,relInfo.getSlotCount() ); 
+		
+	}
+	
+	public ArrayList<Record> getRecordsInDataPage (PageId pageId) throws IOException{
+		
+		ArrayList<Record> tuples = new ArrayList<>();
+		ByteBuffer bufferDataPage = BufferManager.getInstance().GetPage(pageId);
+		
+		bufferDataPage.position(0);
+		
+		for (int i = 0; i < relInfo.getSlotCount(); i++) {
+			
+			if(bufferDataPage.get(i)== (byte)1) {
+				
+				Record record = new Record();
+				record.setRelInfo(this.relInfo);
+				record.readFromBuffer(bufferDataPage, relInfo.getSlotCount() + i * relInfo.getRecordSize());
+				tuples.add(record);
+				}
+		}
+		
+		BufferManager.getInstance().FreePage(pageId, 0);
+		
+		return tuples;
+		
+	}
+	
+	public Rid InsertRecord(Record record) throws IOException {
+		
+		record.setRelInfo(this.relInfo);
+		Rid rid ;
+		
+		PageId freePage = this.getFreeDataPageId();
+		
+		if(freePage==null) {
+			freePage = addDataPage();
+		}
+		rid= writeRecordToDataPage(record, freePage);
+		
+		return rid;
+	}
+	
+	public ArrayList<Record> GetAllRecords() throws IOException{
+		
+		ArrayList<Record> listeDeTuples = new ArrayList<Record>();
+		
+		PageId headerPage = new PageId(relInfo.getFileIdx(),0);
+		
+		ByteBuffer bufferHeaderPage = BufferManager.getInstance().GetPage(headerPage);
+		
+		int nombreDataPage = bufferHeaderPage.getInt(0);
+		
+		for(int i=1; i<=nombreDataPage; i++) {
+			
+			PageId dataPage = new PageId(relInfo.getFileIdx(),i);
+			listeDeTuples.addAll(getRecordsInDataPage(dataPage));
+		}
+		
+		
+		BufferManager.getInstance().FreePage(headerPage, 0);
+		return listeDeTuples;
+	}
+	
+}

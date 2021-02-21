@@ -1,0 +1,49 @@
+package up_info_bdda_iz_ha;
+
+import java.util.Scanner;
+
+public class Main {
+
+	public static void main(String[] args) {
+		
+		DBManager.getInstance().Init();
+	//	DBParams.dbPath = args[0];
+		
+		DBParams.pageSize =4096;
+		
+		Scanner keyboard = new Scanner(System.in);
+		System.out.println("----------------------------------------------------\n");
+		System.out.println("*********** MINI-SGBD *************\n\n");
+		System.out.println("*********** Bienvenue *************\n");
+		
+		System.out.println("Que souhaiteriez vous faire ?\n");
+		System.out.println("1) CREATEREL\n");
+		System.out.println("********** La relation doit respecter le format suivant **********");
+		System.out.println("CREATEREL NomRelation NomCol[1]:TypeColl[1] NomCol[2]:TypeCol[2]....\n");
+		System.out.println("2) EXIT");
+			
+		String commande = keyboard.nextLine();
+		String [] mots = commande.split(" ");
+		
+		if(mots[0].equals("EXIT")) {
+			DBManager.getInstance().Finish();
+			System.out.println("****** Au revoir ******");
+		}else {
+			
+		while(!(mots[0].equals("EXIT"))) {
+			
+			DBManager.getInstance().ProcessCommand(commande);
+			
+			System.out.println("Que souhaiteriez vous faire ? ");
+			commande = keyboard.nextLine();
+			mots = commande.split(" ");
+			
+		}
+		System.out.println("****** Au revoir ******");
+		}
+			 
+		keyboard.close();
+		
+		
+	}
+}

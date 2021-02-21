@@ -1,0 +1,57 @@
+package up_info_bdda_iz_ha;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TestFileManager {
+
+	public static void main(String[] args) throws IOException {
+		
+		/*String commande = "INSERT INTO Profs RECORD (Ileana,BDDA,12,18,Riri)";
+		String mot[] = commande.split(" ");
+		
+		String nomRelation = mot[2];
+		List<String> values = new ArrayList<>();
+		String valueswithoutParentheses = mot[4].substring(1, mot[4].length()-1);
+		
+		String tabValues [] = valueswithoutParentheses.split(",");
+		for (String value : tabValues) {
+			values.add(value);
+		}
+		
+		
+		for (String string : values) {
+			System.out.print(string+"\t");
+		}
+		
+		*/
+		DBParams.dbPath = "/home/rilles/Bureau/dossiers_bureau/Projet_BDDA_IZOUAOUEN_HAMMOUDI/DB";
+			File fichierCsv = new File(DBParams.dbPath + "/../" +"S1.csv");
+
+			List<String> values1 = new ArrayList<String>();
+			FileReader fr = new FileReader(fichierCsv);
+			BufferedReader buffer = new BufferedReader(fr);
+
+			String ligne;
+			
+			if((ligne = buffer.readLine()) != null){
+				String[] tmp = ligne.split(",");
+				for (String j : tmp) {
+					values1.add(j);
+				}
+			}
+
+			for (String string : values1) {
+				System.out.println(string);
+			}
+
+			
+		
+		
+	}
+
+}

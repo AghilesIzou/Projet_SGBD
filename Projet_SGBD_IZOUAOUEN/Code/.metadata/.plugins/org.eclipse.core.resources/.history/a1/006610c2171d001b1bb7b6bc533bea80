@@ -1,0 +1,74 @@
+package up_info_bdda_iz_ha;
+
+import java.nio.ByteBuffer;
+import java.util.Date;
+
+public class Frame {
+	
+	private PageId pageId;
+	private ByteBuffer byteBuffer;
+	private int dirtyFlag;
+	private int pin_Count;
+	private Date timePinCountAtZero;
+	
+	
+	public Frame(PageId pageId) {
+		
+		this.pageId = pageId;
+		this.pin_Count = 0;
+		this.dirtyFlag = 0;
+		this.timePinCountAtZero = null;
+		
+	}
+
+
+	public PageId getPageId() {
+		return pageId;
+	}
+
+
+	public void setPageId(PageId pageId) {
+		this.pageId = pageId;
+	}
+
+
+	public ByteBuffer getByteBuffer() {
+		return byteBuffer;
+	}
+
+
+	public void setByteBuffer(ByteBuffer byteBuffer) {
+		this.byteBuffer = byteBuffer;
+	}
+
+
+	public int getDirtyFlag() {
+		return dirtyFlag;
+	}
+
+
+	public void setDirtyFlag(int dirtyFlag) {
+		this.dirtyFlag = dirtyFlag;
+	}
+
+
+	public int getPin_Count() {
+		return pin_Count;
+	}
+
+
+	public void setPin_Count(int pin_Count) {
+		this.pin_Count = pin_Count;
+	}
+
+
+	public Date getTimePinCountAtZero() {
+		return timePinCountAtZero;
+	}
+
+
+	public void setTimePinCountAtZero(Date timePinCountAtZero) {
+		this.timePinCountAtZero = timePinCountAtZero;
+	}
+
+}

@@ -1,0 +1,72 @@
+package up_info_bdda_iz_ha;
+
+public class Utilitaire {
+	
+	public static void menuDebut() {
+		
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------");
+		System.out.println("\t\t\t\t\t\t*********** MINI-SGBD *************\n");
+		System.out.println("\t\t\t\t\t\t*********** Bienvenue *************");
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------\n");
+		System.out.println("\n-------------------------------------------------------------------------------------------------------------------------------------");
+		System.out.println("Quelle opération souhaitez-vous effectuer ?");
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------\n");
+		System.out.println("1) CREATEREL\n");
+		System.out.println("2) INSERT\n");
+		System.out.println("3) RESET\n");
+		System.out.println("4) BATCHINSERT\n");
+		System.out.println("5) SELECTALL\n");
+		System.out.println("6) SELECTS\n");
+		System.out.println("7) SELECTC\n");
+		System.out.println("8) UPDATE\n");
+		System.out.println("9) HELP\n");
+		System.out.println("10) EXIT");
+		System.out.println("\n");
+		
+	}
+	
+	
+	public static void menuFin() {
+		
+		System.out.println("\n-------------------------------------------------------------------------------------------------------------------------------------");
+		System.out.println("\t\t\t\t\t\t************** Au revoir **************");
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------");
+		
+	}
+	
+	public static void menu() {
+		System.out.println("\n-------------------------------------------------------------------------------------------------------------------------------------");
+		System.out.println("souhaitez-vous effectuer d'autres opérations ?");
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------\n");
+		System.out.println("1) CREATEREL\n");
+		System.out.println("2) INSERT\n");
+		System.out.println("3) RESET\n");
+		System.out.println("4) BATCHINSERT\n");
+		System.out.println("5) SELECTALL\n");
+		System.out.println("6) SELECTS\n");
+		System.out.println("7) SELECTC\n");
+		System.out.println("8) UPDATE\n");
+		System.out.println("9) HELP\n");
+		System.out.println("10) EXIT");
+		System.out.println("\n");
+		
+	}
+	
+	public static void menuHelp() {
+		
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------");
+		System.out.println("\tVoici toutes les commandes disponibles ainsi que le format à respecter pour chacune");
+		System.out.println("\tHELP -> HELP : pour de l'aide sur les commandes");
+		System.out.println("\tCREATEREL -> CREATEREL NomRelation NomCol[1]:TypeColl[1] NomCol[2]:TypeCol[2] NomCol[NbCol]:TypeCol[NbCol]");
+		System.out.println("\tINSERT -> INSERT INTO nomRelation RECORD (val1,val2, … ,valn)");
+		System.out.println("\tBATCHINSERT -> BATCHINSERT INTO nomRelation FROM FILE nomFichier.csv");
+		System.out.println("\tSELECTALL -> SELECTALL FROM nomRelation");
+		System.out.println("\tSELECTS -> SELECTS FROM nomRelation WHERE nomColonne=valeur");
+		System.out.println("\tSELECTC -> SELECTC FROM nomRelation WHERE nomColonne1OPvaleur1   AND nomColonne2OPvaleur2 ...  AND nomColonnekOPvaleurk");
+		System.out.println("\tUPDATE -> UPDATE nomRelation SET nomColonne2=valeur2 WHERE nomColonne1=valeur1");
+		System.out.println("\tRESET -> RESET : pour réinitialiser la base de données");
+		System.out.println("\tEXIT -> EXIT : pour quitter");
+		System.out.println("-------------------------------------------------------------------------------------------------------------------------------------\n");
+	}
+
+}

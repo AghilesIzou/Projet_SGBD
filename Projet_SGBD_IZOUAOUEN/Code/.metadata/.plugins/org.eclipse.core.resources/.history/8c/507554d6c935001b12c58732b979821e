@@ -1,0 +1,13 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+
+public class TestFileManager {
+
+	public static void main(String[] args) throws IOException {
+		
+		
+		
+	}
+
+}

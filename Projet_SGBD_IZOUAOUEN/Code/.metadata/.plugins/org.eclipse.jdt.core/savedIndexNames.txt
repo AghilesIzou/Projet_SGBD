@@ -1,0 +1,3 @@
+INDEX VERSION 1.131+/home/rilles/Bureau/dossiers_bureau/Projet_BDDA_IZOUAOUEN_HAMMOUDI/Code/.metadata/.plugins/org.eclipse.jdt.core
+872354489.index
+1328081016.index

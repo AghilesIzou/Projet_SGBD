@@ -1,0 +1,88 @@
+package up_info_bdda_iz_ha;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+
+public class DiskManagerTests {
+	
+	public void  CreerFichier(int fileIdx) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+ "/Data_"+fileIdx+".rf", "rw");	
+		raf.close();
+		//FileWriter file = new FileWriter(DBParams.dbPath+ "/Data_"+fileIdx+".rf");
+		//file.close();
+	}
+	
+	public PageId AjouterPage(int fileIdx) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile((DBParams.dbPath+ "/Data_"+fileIdx+".rf"),"rw");
+		
+		
+		long longueurFichier = raf.length();
+		System.out.println("longueur du fichier : "+longueurFichier);
+		//doute sur cette longueur !!? int idPage = (int)(longueurFichier/DBParams.pageSize)-1;
+		int idPage = (int)(longueurFichier/DBParams.pageSize);
+		raf.seek((long)longueurFichier);
+		for (int i=0; i<DBParams.pageSize; i++){
+			raf.writeByte(0);
+		}
+		raf.close();
+		
+		return new PageId(fileIdx,idPage);
+		
+			
+	}
+	
+	public void LirePage(PageId pageId, /* ByteBuffer buff*/  ) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+"/Data_"+pageId.getFileIdx()+".rf", "rw");
+		raf.seek(pageId.getPageIdx()* DBParams.pageSize);
+		 raf.read(buff.array());
+	/*	buff.flip();  //make buffer ready for read
+		  while(buff.hasRemaining()){
+		      System.out.print((char) buff.get()); // read 1 byte at a time
+		  }*/
+		raf.close();
+		
+	}
+	
+	public void EcrirePage(PageId pageId, ByteBuffer buff ) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+"/Data_"+pageId.getFileIdx()+".rf", "rw");
+		raf.seek(pageId.getPageIdx()* DBParams.pageSize);
+		raf.write(buff.array());
+		raf.close();
+		
+	}
+	
+
+	public static void main(String[] args) {
+		DiskManagerTests dt = new DiskManagerTests();
+		DBParams.dbPath = "/home/rilles/Bureau/dossiers_bureau/Projet_BDDA_IZOUAOUEN_HAMMOUDI/DB";
+		///home/rilles/Bureau/dossiers_bureau/Projet_BDDA_IZOUAOUEN_HAMMOUDI/DB
+		DBParams.pageSize=4096;
+		try {
+			dt.CreerFichier(1);
+			System.out.println("le fichier  a été crée avec succés");
+			PageId pg = dt.AjouterPage(1);
+			PageId pg2 = dt.AjouterPage(1);
+			ByteBuffer bf =  ByteBuffer.allocate(4096*2);
+			dt.LirePage(pg, bf);
+			bf.flip();  //make buffer ready for read
+			  while(bf.hasRemaining()){
+			      System.out.print((char) bf.get()); // read 1 byte at a time
+			  }
+			
+			
+			
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+
+	}
+
+}

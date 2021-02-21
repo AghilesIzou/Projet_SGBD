@@ -1,0 +1,21 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TestFileManager {
+
+	public static void main(String[] args) throws IOException {
+		String commande = "INSERT INTO nomRelation RECORD (val1,val2, … ,valn)";
+		String mot[] = commande.split(" ");
+		
+		String nomRelation = mot[2];
+		System.out.println("nom de la relation : "+nomRelation);
+		List<String> values = new ArrayList<>();
+		String valuesWithParentheses=  mot[4];
+		
+		
+	}
+
+}

@@ -1,0 +1,187 @@
+package up_info_bdda_iz_ha;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DBManager {
+	
+	private static DBManager DBManager;
+   
+
+    private DBManager() {}
+
+    public synchronized static DBManager getInstance() {
+        if(DBManager == null) {
+            DBManager = new DBManager();
+        }
+
+        return DBManager;
+    }
+    
+    public void Init() {
+    	DBInfo.getINSTANCE().Init();
+    	FileManager.getINSTANCE().Init();
+    }
+    
+    public void Finish()  {
+    	
+    	DBInfo.getINSTANCE().Finish();
+    	BufferManager.getInstance().FlushAll();
+    }
+    
+    public void ProcessCommand(String commande) throws IOException {
+    	
+    	String mot[] = commande.split(" ");
+    	
+    	
+    	switch(mot[0]) {
+    	
+    	case "CREATEREL":
+    		
+    		List<ColInfo> listeNomTypeColonne = new ArrayList<ColInfo> ();
+    		for(int i =2; i< mot.length;i++) {
+    			String [] nomType = mot[i].split(":");
+    			ColInfo infoColonne = new ColInfo(nomType[0],nomType[1]);
+    			listeNomTypeColonne.add(infoColonne);
+    		}
+    		CreateRelation(mot[1],(mot.length-2),listeNomTypeColonne);
+    		break;
+    		
+    	case "RESET":
+    		
+    		Reset();
+    		break;
+    		
+    	case "INSERT":
+    		
+    		String nomRelation = mot[2];
+    		List<String> values = new ArrayList<>();
+    		String valueswithoutParentheses = mot[4].substring(1, mot[4].length()-1);
+    		
+    		String tabValues [] = valueswithoutParentheses.split(",");
+    		for (String value : tabValues) {
+    			values.add(value);
+    		}
+    		Insert(nomRelation, values);
+    		break;
+    		
+    	case "BATCHINSERT" :
+    		
+    		BatchInsert(mot[2], mot[5]);
+    		break;
+    		
+    		
+    	default :
+    		System.out.println("mauvaise commande !!");
+    		break;
+    	
+    	}
+    	
+    }
+    
+    public void CreateRelation(String nomRelation, int nombreColonnes, List<ColInfo> listeNomTypeColonne) throws IOException {
+    	
+    	int recordSize=0;
+    	
+    	String typeString = null;
+    	
+    	for (ColInfo colInfo : listeNomTypeColonne) {
+			
+    		switch(colInfo.getTypeDeLaColonne().toLowerCase()) {
+			
+    		
+    			case "int" : case "float" : recordSize+=4;
+    			break;
+    			
+    			default : 
+    				
+    				typeString = colInfo.getTypeDeLaColonne().toLowerCase();
+    				recordSize += 2* Integer.parseInt(typeString.substring(6));
+			}
+		}
+    	
+    	int slotCount = (DBParams.pageSize/(recordSize+1));
+    	int fileIdx = DBInfo.getINSTANCE().getCompteur();
+    	
+    	RelationInfo relationInfo = new RelationInfo(nomRelation, nombreColonnes, listeNomTypeColonne, fileIdx, recordSize, slotCount );
+    	DBInfo.getINSTANCE().AddRelation(relationInfo);
+    	
+    	System.out.println("\nVous avez créé la relation avec succés ! ");
+    	System.out.println("nom de la relation créé : "+nomRelation);
+    	System.out.println("nombres de colonnes : "+nombreColonnes);
+    	for(int i=0; i<listeNomTypeColonne.size();i++) {
+    		System.out.println("nom de la colonne "+(i+1)+" : "+listeNomTypeColonne.get(i).getNomDeLaColonne()+", son type : "+listeNomTypeColonne.get(i).getTypeDeLaColonne());
+    	}
+    	
+    	FileManager.getINSTANCE().CreateRelationFile(relationInfo);
+    	
+    }
+    
+    public void Reset() {
+    	
+    	BufferManager.getInstance().reset();
+    	DBInfo.getINSTANCE().reset();
+    	FileManager.getINSTANCE().reset();
+    	
+    	File directory = new File(DBParams.dbPath);
+    	
+    	 if (directory.exists()) {
+    		 
+             if (directory.isDirectory()) {
+                 
+                 File[] fichiers = directory.listFiles();
+                 
+                 for (File file : fichiers) {
+                     file.delete();
+                 }
+                 
+             }
+             
+    	 }
+
+    	
+    	 System.out.println("\n********* La base de données a été supprimée avec succès ! *********\n");
+    	
+    }
+    
+    public void  Insert(String nomRelation, List<String> values) throws IOException {
+    	
+    	Record record = new Record();
+    	record.setListeValues(values);
+    	FileManager.getINSTANCE().InsertRecordInRelation(record, nomRelation);
+    	
+    	
+     }
+    
+    public void BatchInsert(String nomRelation, String nomFichier) throws IOException {
+    	
+    	List<String> values = new ArrayList<String>();
+    	
+    	File fichierCsv = new File(DBParams.dbPath + "/../" +nomFichier);
+    	FileReader fileReader = new FileReader(fichierCsv);
+		
+    	@SuppressWarnings("resource")
+		BufferedReader bufferdReader = new BufferedReader(fileReader);
+
+		String ligne=null;
+		
+		while((ligne = bufferdReader.readLine()) != null){
+			Record record = new Record();
+			String[] valuesRecord = ligne.split(",");
+			for (String value : valuesRecord) {
+				values.add(value);
+			}
+			record.setListeValues(values);
+			FileManager.getINSTANCE().InsertRecordInRelation(record, nomRelation);
+		}
+
+		
+    	
+    }
+
+
+}

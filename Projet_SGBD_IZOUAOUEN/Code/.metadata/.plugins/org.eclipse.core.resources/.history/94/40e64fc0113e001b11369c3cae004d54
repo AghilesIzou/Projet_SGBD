@@ -1,0 +1,106 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+public class FileManager {
+	
+	private ArrayList<HeapFile> heapFiles;
+	
+	
+	private FileManager() {
+		 
+		heapFiles = new ArrayList<HeapFile>();
+	}
+	
+	private static class Holder{
+		public static  FileManager fileManager = new FileManager();
+	}
+
+	public static  FileManager getINSTANCE() {
+		
+		return Holder.fileManager;
+	}
+	
+	public void Init() {
+		
+		for (int i = 0; i < DBInfo.getINSTANCE().listeDeRelationsInfo.size(); i++) {
+			HeapFile heapFile = new HeapFile(DBInfo.getINSTANCE().listeDeRelationsInfo.get(i));
+			heapFiles.add(heapFile);
+		}
+		
+	}
+	
+	public void CreateRelationFile(RelationInfo relInfo) throws IOException {
+		
+		HeapFile heapFile = new HeapFile(relInfo);
+		heapFiles.add(heapFile);
+		heapFile.createNewOnDisk();
+		
+	}
+	
+	public Rid InsertRecordInRelation (Record record, String relName) throws IOException {
+		
+		Rid rid =null;
+		
+		for (int i = 0; i <heapFiles.size() ; i++) {
+			
+			if(heapFiles.get(i).getRelInfo().getNomDeLaRelation().equals(relName)) {
+				rid = heapFiles.get(i).InsertRecord(record);
+			}
+		}
+		
+		return rid;
+	}
+	
+	public ArrayList<Record> SelectAllFromRelation (String relName) throws IOException{
+		
+		ArrayList<Record> allRecords = null;
+		
+		for (int i = 0; i <heapFiles.size() ; i++) {
+			
+			if(heapFiles.get(i).getRelInfo().getNomDeLaRelation().equals(relName)) {
+				allRecords = heapFiles.get(i).GetAllRecords();
+			}
+		}
+		
+		
+		return allRecords;
+		
+	}
+	
+	
+	public RelationInfo getNomRel (String relName) throws IOException{
+		
+		RelationInfo relInfo=null;
+		
+		for (int i = 0; i <heapFiles.size() ; i++) {
+			
+			if(heapFiles.get(i).getRelInfo().getNomDeLaRelation().equals(relName)) {
+				relInfo = heapFiles.get(i).getRelInfo();
+			}
+		}
+		
+		
+		return relInfo;
+		
+	}
+	
+	public void reset() {
+		heapFiles.clear();
+	}
+
+	public ArrayList<HeapFile> getHeapFiles() {
+		return heapFiles;
+	}
+
+	public void setHeapFiles(ArrayList<HeapFile> heapFiles) {
+		this.heapFiles = heapFiles;
+	}
+	
+	
+	
+	
+	
+
+}

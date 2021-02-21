@@ -1,0 +1,25 @@
+package up_info_bdda_iz_ha;
+
+import java.nio.ByteBuffer;
+import java.util.Date;
+
+public class Frame {
+	
+	private PageId pageId;
+	private ByteBuffer byteBuffer;
+	private int dirtyFlag;
+	private int pin_Count;
+	private Date timePinCountAtZero;
+	
+	
+	public Frame() {
+		this.pageId = pageId;
+		this.pin_Count = 0;
+		this.dirtyFlag = 0;
+		this.timePinCountAtZero = null;
+		
+		
+		
+	}
+
+}

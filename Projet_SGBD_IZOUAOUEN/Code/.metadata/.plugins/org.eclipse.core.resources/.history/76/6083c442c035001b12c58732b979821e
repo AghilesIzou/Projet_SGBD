@@ -1,0 +1,63 @@
+package up_info_bdda_iz_ha;
+
+public class Utilitaire {
+	
+	public static void menuDebut() {
+		
+		System.out.println("\t----------------------------------------------------\n");
+		System.out.println("\t\t*********** MINI-SGBD *************\n\n");
+		System.out.println("\t\t*********** Bienvenue *************\n");
+		
+		System.out.println("Quelle opération souhaitez-vous effectuer ?\n");
+		System.out.println("1) CREATEREL\n");
+		System.out.println("2) INSERT\n");
+		System.out.println("3) RESET\n");
+		System.out.println("4) BATCHINSERT\n");
+		System.out.println("5) SELECTALL\n");
+		System.out.println("6) SELECTS\n");
+		System.out.println("7) EXIT");
+	}
+	
+	
+	public static void menuFin() {
+		
+		System.out.println("\t\t************** Au revoir **************");
+		System.out.println("\n\n\t-----------------------------------------------------------\n");
+		
+	}
+	
+	public static void menu() {
+		
+		System.out.println("Quelle opération souhaitez-vous effectuer ?\n");
+		System.out.println("1) CREATEREL\n");
+		System.out.println("2) INSERT\n");
+		System.out.println("3) RESET\n");
+		System.out.println("4) BATCHINSERT\n");
+		System.out.println("5) SELECTALL\n");
+		System.out.println("6) SELECTS\n");
+		System.out.println("7) Aide\n");
+		System.out.println("8) EXIT");
+		
+	}
+	
+	public static void menuAide() {
+		
+			System.out.println("********** La relation doit respecter le format suivant **********");
+			System.out.println("\nCREATEREL NomRelation NomCol[1]:TypeColl[1] NomCol[2]:TypeCol[2]....\n");
+		
+			System.out.println("Vous utilisez un mini-sgbd, voici toutes les commandes disponibles.");
+			System.out.println("\thelp -> pour de l'aide sur les commandes");
+			System.out.println("\tcreate -> create RelName NbCol TypeCol[1] TypeCol[2] ... TypeCol[NbCol]");
+			System.out.println("\tinsert -> insert RelName Val[1] Val[2] ... Val[n]");
+			System.out.println("\tfill -> fill RelName nomfichier.csv");
+			System.out.println("\tselectall -> selectall RelName");
+			System.out.println("\tselect -> select RelName indiceCol v");
+			System.out.println("\tjoin -> join RelName1 RelName2 indiceCol1 indiceCol2");
+			System.out.println("\tcreateindex -> createindex RelName indiceCol val_ordre");
+			System.out.println("\tselectindex -> selectindex RelName indiceCol v");
+			System.out.println("\tjoinindex -> joinindex RelName1 RelName2 indiceCol1 indiceCol2");
+			System.out.println("\tclean -> pour vider la base de données");
+			System.out.println("\texit -> pour quitter");
+	}
+
+}

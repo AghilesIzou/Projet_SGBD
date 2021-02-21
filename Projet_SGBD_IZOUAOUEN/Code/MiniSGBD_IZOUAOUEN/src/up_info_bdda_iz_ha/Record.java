@@ -1,0 +1,133 @@
+package up_info_bdda_iz_ha;
+
+import java.nio.ByteBuffer;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/*
+ * Class Record permet de construire un record 
+ * 
+ *  @author Aghiles_IZOUAOUEN  
+ * 
+ * @version 1.0 
+ * 
+ *
+ */
+
+public class Record {
+
+		/*
+		* une relationInfo qui correspond à la relation à laquelle «appartient» le record
+		*/
+	    private RelationInfo relInfo;
+	    
+	    /*
+	    * Liste de string qui correspond aux valeurs du record
+	    */
+	   
+	    private List<String> values;
+	    
+	    public Record(RelationInfo relInfo) {
+	        
+	    	this.relInfo = relInfo;
+	        values = new ArrayList<String>();
+
+	    }
+
+	    public Record() {
+	        values = new ArrayList<String>();
+	    }
+
+	    public RelationInfo getRelInfo() {
+	        return relInfo;
+	    }
+
+	    public void setRelInfo(RelationInfo relInfo) {
+	        this.relInfo = relInfo;
+	    }
+
+	    public List<String> getValues() {
+	        return values;
+	    }
+
+	    public void setValues(int indice, String value) {
+	    	this.values.set(indice, value);
+	    }
+	    
+	    public void setValues(String value) {
+	    	this.values.add(value);
+	    }
+	    
+	    public void setListeValues(List<String> values) {
+	        this.values = values;
+	    }
+	    
+	    /*
+	     * methode qui sert à écrire les valeurs du Record dans le buffer, l’une après l’autre, à partir de position
+	     * @param buff un ByteBuffer 
+	     * @param position la position dans le buffer 
+	     */
+	    
+	    public void writeToBuffer(ByteBuffer buff, int position) {
+	        
+	    	buff.position(position);
+	        for ( int i = 0 ; i < values.size() ; i++) {
+	            
+	        	if( relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().equals("int")) {
+	                buff.putInt(Integer.parseInt(values.get(i))); 
+	            }
+	            else if( relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().equals("float")) {
+	                buff.putFloat(Float.parseFloat(values.get(i)));
+	            }
+	            else if(relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().substring(0,6).equals("string")) {
+					
+	            	int valeur = Integer.parseInt(relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().substring(6));
+	            	for (int j = 0; j < valeur; j++) {
+						buff.putChar(values.get(i).charAt(j));
+					}
+	            }
+	        }
+	    }
+
+	    /*
+		 * méthode qui sert à lire les valeurs du Record depuis le buffer, l’une après l’autre, à partir de position
+		 * @param buff un ByteBuffer 
+	     * @param position la position dans le buffer 
+		 */
+	    
+	    public void readFromBuffer(ByteBuffer buff,int position) {
+	       
+	    	buff.position(position);
+	    	
+	        for (int i = 0; i < relInfo.getListeNomTypeColonnes().size(); i++) {
+	            if ( relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().equals("int")) {
+	                values.add(String.valueOf(buff.getInt()));
+	            } else if ( relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().equals("float")) {
+	                values.add(String.valueOf(buff.getFloat()));
+	            }else if (relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().substring(0,6).equals("string")) {
+	            	
+	            	int valeur = Integer.parseInt(relInfo.getListeNomTypeColonnes().get(i).getTypeDeLaColonne().substring(6));
+	            	StringBuilder sb = new StringBuilder();
+					for (int j = 0; j <valeur; j++) {
+						
+						sb.append(String.valueOf(buff.getChar()));
+					}
+					values.add(sb.toString());
+				}
+			}
+	    }
+	    
+}
+
+	    
+
+	    
+	        
+	
+	    
+
+	
+	
+
+

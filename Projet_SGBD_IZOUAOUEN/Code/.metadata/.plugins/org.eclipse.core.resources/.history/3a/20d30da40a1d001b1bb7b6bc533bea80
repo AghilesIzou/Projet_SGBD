@@ -1,0 +1,8 @@
+package up_info_bdda_iz_ha;
+
+public class DBParams {
+	
+	public static String dbPath;
+	public static int pageSize;
+
+}

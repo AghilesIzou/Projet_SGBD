@@ -1,0 +1,67 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+
+public class DiskManager {
+	
+	private static DiskManager DiskManager;
+	
+	private DiskManager() {}
+	
+	public static synchronized DiskManager getInstance() {
+		if(DiskManager==null) {
+			DiskManager = new DiskManager();
+		}
+		
+		return DiskManager;
+	}
+	
+	public void CreateFile(int fileIdx) throws IOException {
+		
+		RandomAccessFile file = new RandomAccessFile(DBParams.dbPath+ "/Data_"+fileIdx+".rf", "rw");	
+		file.close();
+		
+	}
+	
+	public  PageId AddPage(int fileIdx) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+ "/Data_"+fileIdx+".rf","rw");
+		
+		long longueurFichier = raf.length();
+		System.out.println("longueur du fichier : "+longueurFichier+" nombre de pages : "+(longueurFichier/4096));
+		int idPage = (int)(longueurFichier/DBParams.pageSize);
+		raf.seek((long)longueurFichier);
+		for (int i=0; i<DBParams.pageSize; i++){
+			raf.writeByte(0);
+			
+		}
+		raf.close();
+		
+		return new PageId(fileIdx,idPage);
+		
+			
+	}
+	
+	public  void ReadPage(PageId pageId, ByteBuffer buff ) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+"/Data_"+pageId.getFileIdx()+".rf", "rw");
+		raf.seek(pageId.getPageIdx()* DBParams.pageSize);
+		raf.read(buff.array());
+		raf.close();
+		
+	}
+	
+	public  void WritePage(PageId pageId, ByteBuffer buff ) throws IOException {
+		
+		RandomAccessFile raf = new RandomAccessFile(DBParams.dbPath+"/Data_"+pageId.getFileIdx()+".rf", "rw");
+		raf.seek(pageId.getPageIdx()* DBParams.pageSize);
+		raf.write(buff.array());
+		raf.close();
+		
+	}
+	
+	
+
+}

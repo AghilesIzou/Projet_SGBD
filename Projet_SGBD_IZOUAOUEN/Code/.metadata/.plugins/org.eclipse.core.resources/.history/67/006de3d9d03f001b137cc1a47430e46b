@@ -1,0 +1,185 @@
+package up_info_bdda_iz_ha;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+public class BufferManager {
+	
+	
+	
+	private List<Frame> bufferpool;
+	
+	private BufferManager(){
+		
+		bufferpool = new ArrayList<Frame>();
+		
+		
+		for(int i=0;i<DBParams.frameCount;i++ ) {
+			
+			bufferpool.add(new Frame());
+		}
+		
+	}
+	
+	private static class Holder{
+		public static BufferManager bufferManager= new BufferManager(); 
+	}
+	
+	public static BufferManager getInstance() {
+		return Holder.bufferManager;
+	}
+	
+	/**
+	 * Cette méthode doit incrémenter le pin_count et aussi s'occuper 
+	 * du remplacement d'une frame si besoin.
+	 * @param page la page demandée
+	 * @return le contenu de la page demandée
+	 * @throws IOException
+	 */
+	public  ByteBuffer GetPage(PageId page) throws IOException{
+		
+		
+		
+		
+		//parcourir le bufferpool
+		for(int i = 0; i < bufferpool.size(); i++) {
+			//Demande qui correspond à une page deja presente dans le bufferpool => on incremente le pinCount
+			if(page.equals(bufferpool.get(i).getPageId())) {
+				bufferpool.get(i).incrementPinCount();
+				return bufferpool.get(i).getByteBuffer();
+			}
+			//Frame vide = pas remplie -> aucune page n'a été chargé dedans
+			if(bufferpool.get(i).getPageId() == null) {
+				DiskManager.getInstance().ReadPage(page, bufferpool.get(i).getByteBuffer());
+				bufferpool.get(i).incrementPinCount();
+				bufferpool.get(i).setPageId(page);
+				return bufferpool.get(i).getByteBuffer();
+			}
+		}
+		
+		//si le bufferpool est rempli et la page  demandé est inexistante => on procède au remlacement avec une politique de remplacement
+		//LRU
+		//Tout d'abord, on récupère toutes les frames qui ont un pinCount à 0
+		ArrayList<Frame> framePinCountZero = new ArrayList<>(0);
+		for(int i = 0; i<bufferpool.size(); i++) {
+			//on garde toutes les frames qui ont un pincount à 0
+			if(bufferpool.get(i).getPin_Count() == 0) {
+				framePinCountZero.add(bufferpool.get(i));
+			}
+		}
+
+		//on vérifie la liste contenant les frames qui ont un pincount à 0 n'est pas vide
+		if(framePinCountZero.size() != 0) {
+			//la liste n'est pas vide
+			//On doit trouver la frame à remplacer => celle qui a "le plus ancien temps de unpin" la moins récemment utilisé
+			//On initialise la frame à remplacer par la premiere frame de la liste contenant les frames qui ont un pincount à 0
+			Frame frameARemplacer = framePinCountZero.get(0);
+			
+			//On cherche la frame qui a été le moins récemment utilisée => "le plus ancien temps de unpin"
+			//On commence la boucle à 1 car on a déjà la première valeur dans frameARemplacer
+			for(int i = 1; i<framePinCountZero.size(); i++) {
+				//les temps de unpin
+				Date timePinCountZeroCourant = framePinCountZero.get(i).getTimePinCountAtZero();
+				Date timeLru = frameARemplacer.getTimePinCountAtZero();
+				
+				//si le temps de la frame courante est avant celui de la frame 
+				if(timePinCountZeroCourant.before(timeLru)) {
+					frameARemplacer = framePinCountZero.get(i);
+				}
+			}
+			
+			
+			//Avant son remplacement, si la frame/page si son flag dirty = 1,
+			//écrire son contenu sur le disque
+			if(frameARemplacer.getDirtyFlag() == 1) {
+				DiskManager.getInstance().WritePage(frameARemplacer.getPageId(),frameARemplacer.getByteBuffer());
+			}
+			//remplacement
+			frameARemplacer.setPageId(page);
+			frameARemplacer.incrementPinCount();
+			
+			DiskManager.getInstance().ReadPage(page, frameARemplacer.getByteBuffer());
+			
+			
+			return frameARemplacer.getByteBuffer();
+		}
+		//sinon la liste est vide => aucune frame à un pincount à 0 => toutes les frames sont en cours d'utilisation
+		else {
+			System.out.println("*** Les pages sont en cours d'utilisation on ne peut charger la nouvelle page dans le bufferPool ! ***");
+			return null;
+		}
+		
+	
+	}
+	
+	/**
+	 * Cette méthode libère une page et spécifie si elle a été modifiée.
+	 * Cette méthode décrémente le pin_count et actualise le flag dirty de la page.
+	
+	 */
+	public  void FreePage(PageId page,int  valdirty) {
+		
+		
+		for(int i = 0;i<bufferpool.size();i++) {
+			if(page.equals(bufferpool.get(i).getPageId())) {
+				bufferpool.get(i).decrementPinCount();
+				if(bufferpool.get(i).getPin_Count() == 0) {
+					bufferpool.get(i).setTimePinCountAtZero(new Date());
+				}
+				if(valdirty == 1) {
+					bufferpool.get(i).setDirtyFlag(valdirty);
+				}
+			}
+		}
+	
+	
+} 
+	
+	/*
+	 *  cette méthode s'occupe de l'écriture de toutes les pages dont le flag dirty = 1, sur le disque
+◦ 		et de la remise à 0 de tous les flags/informations et contenus des buffers (bufferpool « vide »)
+	 */
+	public  void FlushAll() throws IOException {
+	
+		boolean pinCountZero = true;
+		//on vérifie que toutes les frames ont leur pincount==0
+		//Si une des frames à son pin count != de 0, on quitte l'appli
+		for(int i = 0; i<bufferpool.size(); i++) {
+			if(bufferpool.get(i).getPin_Count() != 0) {
+				pinCountZero = false;
+			}
+		}
+		
+		if(pinCountZero) {
+			for(int i = 0; i<bufferpool.size(); i++) {
+				if(bufferpool.get(i).getDirtyFlag() == 1) {
+					try{
+						DiskManager.getInstance().WritePage(bufferpool.get(i).getPageId(), bufferpool.get(i).getByteBuffer());
+					}catch(IOException e) {
+						System.out.println("Une erreur s'est produite lors de l'écriture sur disque !");
+						System.out.println("Détails : " + e.getMessage());
+					}
+				}
+				//on marque les frames comme "inoccupées"
+				bufferpool.set(i, new Frame());
+				
+			}
+		}
+		else {
+			System.out.println("*** Erreur ! Les pages sont en cours d'utilisation ! ");
+			System.exit(-1);
+		}
+		
+	
+} 
+	
+	public void reset() throws IOException {
+		FlushAll();
+	}
+	
+		 
+
+}
